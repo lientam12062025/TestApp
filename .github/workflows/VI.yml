@@ -37,7 +37,7 @@ jobs:
       - name: Clone Data
         run: |
           
-          git clone --branch main https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
+          git clone --branch 2.8 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
 
       - name: Prepare Enviroment
         run: |
