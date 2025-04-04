@@ -54,4 +54,4 @@ jobs:
         run: |
            cd HyperTN_Code
            sudo chmod 777 -R *
-           sudo bash BuildTN.sh ${{ github.event.inputs.ROM_URL }}  >/dev/null 2>&1
+           sudo bash BuildTN.sh ${{ github.event.inputs.ROM_URL }}
