@@ -1,4 +1,4 @@
-name: Auto Build 2.8 Test
+name: Auto Build 2.9 VI
 
 on:
   workflow_dispatch:
