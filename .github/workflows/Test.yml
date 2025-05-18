@@ -27,7 +27,7 @@ jobs:
 
       - name: Clone HyperTN_Code
         run: |
-          git clone --depth 1 --branch main https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
+          git clone --depth 1 --branch 3.0 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
 
       - name: Set up environment
         run: |
