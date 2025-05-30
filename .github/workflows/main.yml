@@ -1,0 +1,48 @@
+name: Auto Build Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      ROM_URL:
+        description: 'OTA URL for ROM'
+        required: true
+        type: string
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          swap-size-mb: 8192
+          root-reserve-mb: 4096
+          temp-reserve-mb: 4096
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone HyperTN_Code
+        run: |
+          git clone --depth 1 --branch T https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
+
+      - name: Set up environment
+        run: |
+          sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xmlstarlet bc aria2 python3 p7zip-full zipalign \
+            android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
+            openjdk-17-jdk gcc g++ python-is-python3
+          curl -s https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
+
+      - name: Run Auto Build TN
+        run: |
+          cd HyperTN_Code
+          sudo chmod -R +x .
+          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
