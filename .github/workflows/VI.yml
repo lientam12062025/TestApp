@@ -1,4 +1,4 @@
-name: Auto Build 2.9 VI
+name: Auto Build 3.0 VI
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Clone HyperTN_Code
         run: |
-          git clone --depth 1 --branch 2.9 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
+          git clone --depth 1 --branch 3.0 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
 
       - name: Set up environment
         run: |
