@@ -1,4 +1,4 @@
-name: Auto Build 2.9 ML
+name: Auto Build 3.0 ML
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Clone HyperTN_Code
         run: |
-          git clone --depth 1 --branch 2.9 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
+          git clone --depth 1 --branch 3.0 https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
 
       - name: Set up environment
         run: |
@@ -40,10 +40,10 @@ jobs:
           curl -s https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
-          
-      - name: Auto build TN (ML)
+
+      - name: Run Auto Build TN
         run: |
-           cd HyperTN_Code
-           sudo chmod 777 -R *
-           sudo sed -i "/LANG_ROM=vi/c\LANG_ROM=ML" Output/BuildConfig.ini
-           sudo bash BuildTN.sh ${{ github.event.inputs.ROM_URL }} >/dev/null 2>&1
+          cd HyperTN_Code
+          sudo chmod -R +x .
+          sudo sed -i "/LANG_ROM=vi/c\LANG_ROM=ML" Output/BuildConfig.ini
+          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}" >/dev/null 2>&1
