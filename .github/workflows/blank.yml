@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           url="${{ inputs.ROM_URL }}"
-          if echo "$url" | grep -qi 'global'; then
+          if [[ "$url" == *global* || "$url" == *Global* ]]; then
             branch="3.1G"
           else
             branch="3.1"
