@@ -1,4 +1,4 @@
-name: Auto Build 3.0 GL
+name: Auto Build 3.1T
 
 on:
   workflow_dispatch:
@@ -25,10 +25,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Determine branch by ROM_URL
+        id: pick_branch
+        shell: bash
+        run: |
+          url="${{ inputs.ROM_URL }}"
+          if [[ "$url" == *global* || "$url" == *Global* ]]; then
+            branch="3.1GT"
+          else
+            branch="3.1T"
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "Selected branch: $branch"
+
       - name: Clone HyperTN_Code
         run: |
-          git clone --depth 1 --branch 3.0_GL https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git
-
+          git clone --depth 1 --branch "${{ steps.pick_branch.outputs.branch }}" \
+            "https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git"
+            
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
