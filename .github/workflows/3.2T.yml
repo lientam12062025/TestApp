@@ -1,4 +1,4 @@
-name: Auto Build 3.1TT
+name: Auto Build 3.2T
 
 on:
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
           if [[ "$url" == *global* || "$url" == *Global* ]]; then
             branch="3.2G"
           else
-            branch="3.1T"
+            branch="3.2T"
           fi
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
           echo "Selected branch: $branch"
