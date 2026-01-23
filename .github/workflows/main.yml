@@ -22,27 +22,32 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
 
-      - name: Checkout repository
+      # Bước 1: Checkout repo hiện tại (để lấy workflow nếu cần)
+      - name: Checkout Runner Repo
         uses: actions/checkout@v4
 
-      - name: Determine branch by ROM_URL
+      # Bước 2: Xử lý logic chọn nhánh (Viết gọn hơn)
+      - name: Determine branch
         id: pick_branch
-        shell: bash
         run: |
-          url="${{ inputs.ROM_URL }}"
-          if [[ "$url" == *global* || "$url" == *Global* ]]; then
-            branch="3.2G"
+          if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
+            echo "branch=3.2G" >> $GITHUB_OUTPUT
+            echo "Target: Global (3.2G)"
           else
-            branch="3.2"
+            echo "branch=3.2" >> $GITHUB_OUTPUT
+            echo "Target: China/Them (3.2)"
           fi
-          echo "branch=$branch" >> "$GITHUB_OUTPUT"
-          echo "Selected branch: $branch"
 
-      - name: Clone HyperTN_Code
-        run: |
-          git clone --depth 1 --branch "${{ steps.pick_branch.outputs.branch }}" \
-            "https://${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git"
-            
+      # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
+      - name: Checkout HyperTN_Code
+        uses: actions/checkout@v4
+        with:
+          repository: thangnguyen2303/HyperTN_Code
+          ref: ${{ steps.pick_branch.outputs.branch }}
+          token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
+          path: HyperTN_Code
+
+      # Bước 4: Setup môi trường (Gom lại cho gọn)
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
@@ -51,6 +56,8 @@ jobs:
             xmlstarlet bc aria2 python3 p7zip-full zipalign \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
+          
+          # Setup Rclone
           curl -s https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
@@ -58,6 +65,6 @@ jobs:
       - name: Run Auto Build TN
         run: |
           cd HyperTN_Code
-          sudo chmod -R +x .
-          echo "${{ inputs.ROM_URL }}"
+          chmod +x BuildTN.sh
+          # Chạy script với sudo, truyền thẳng URL
           sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
