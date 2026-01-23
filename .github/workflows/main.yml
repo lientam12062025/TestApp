@@ -22,7 +22,6 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
 
-      # Bước 1: Checkout repo hiện tại (để lấy workflow nếu cần)
       - name: Checkout Runner Repo
         uses: actions/checkout@v4
 
@@ -46,8 +45,7 @@ jobs:
           ref: ${{ steps.pick_branch.outputs.branch }}
           token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
           path: HyperTN_Code
-
-      # Bước 4: Setup môi trường (Gom lại cho gọn)
+            
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
@@ -56,8 +54,6 @@ jobs:
             xmlstarlet bc aria2 python3 p7zip-full zipalign \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
-          
-          # Setup Rclone
           curl -s https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
@@ -66,5 +62,5 @@ jobs:
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
-          # Chạy script với sudo, truyền thẳng URL
+          echo "${{ inputs.ROM_URL }}"
           sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
