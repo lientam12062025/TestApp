@@ -65,6 +65,6 @@ jobs:
       - name: Run Auto Build TN
         run: |
           cd HyperTN_Code
-          chmod +x BuildTN.sh
+          sudo chmod -R +x .
           # Chạy script với sudo, truyền thẳng URL
           sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
