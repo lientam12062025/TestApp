@@ -16,11 +16,12 @@ jobs:
         uses: easimon/maximize-build-space@master
         with:
           swap-size-mb: 8192
-          root-reserve-mb: 4096
-          temp-reserve-mb: 4096
+          root-reserve-mb: 2048    # Giảm cái này xuống 2048 (2GB) là đủ cho OS chạy
+          temp-reserve-mb: 1024    # QUAN TRỌNG: Giảm cái này xuống 1024 hoặc thấp hơn
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
+          overprovision-lvm: 'true'
 
       - name: Checkout Runner Repo
         uses: actions/checkout@v4
