@@ -55,6 +55,7 @@ jobs:
             xmlstarlet bc aria2 python3 p7zip-full zipalign \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
+          sudo pip3 install pycryptodome
           curl -s https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
