@@ -33,7 +33,7 @@ jobs:
       - name: 📝 Update roms.json & Push
         run: |
           echo "Dang quet file tu Drive..."
-          
+          rclone listremotes
           # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
           # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
           rclone lsjson "gdrive2:/TN/ROM" -R --files-only --no-mimetype --no-modtime > website-repo/src/data/roms1.json
