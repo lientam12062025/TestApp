@@ -66,3 +66,37 @@ jobs:
           sudo chmod -R +x .
           echo "${{ inputs.ROM_URL }}"
           sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
+          
+      - name: 🔄 Checkout Website Repo
+        uses: actions/checkout@v4
+        with:
+          # ⚠️ SỬA TÊN KHO WEBSITE CỦA BẠN Ở ĐÂY
+          repository: thangnguyen2303/hypertn-site
+          # ⚠️ Token quyền ghi (Tạo trong Developer Settings > Personal access tokens)
+          token: ${{ secrets.TNWEB }} 
+          path: website-repo
+
+      - name: 📝 Update roms.json & Push
+        run: |
+          echo "Dang quet file tu Drive..."
+          rclone listremotes
+          # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
+          # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
+          rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms1.json
+          rclone lsjson "gdrive03:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms2.json
+
+          # 2. Commit và đẩy code lên Github
+          cd website-repo
+          git config --global user.name "HyperTN Bot"
+          git config --global user.email "bot@hypertn.com"
+
+          # Kiểm tra xem có gì thay đổi không
+          if [[ -n $(git status -s) ]]; then
+            git add src/data/*.json
+            git commit -m "🤖 Auto-update ROM List: $(date '+%Y-%m-%d %H:%M')"
+            git push
+            echo "✅ Da cap nhat Website thanh cong!"
+          else
+            echo "💤 Khong co file ROM moi, bo qua update web."
+          fi
+
