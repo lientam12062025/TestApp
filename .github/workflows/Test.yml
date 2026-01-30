@@ -41,8 +41,8 @@ jobs:
 
           # 2. Commit và đẩy code lên Github
           cd website-repo
-          git config --global user.name "HyperTN Bot"
-          git config --global user.email "bot@hypertn.com"
+          git config --global user.name "Thang Nguyen"
+          git config --global user.email "nvthang2303@outlook.com.vn"
 
           # Kiểm tra xem có gì thay đổi không
           if [[ -n $(git status -s) ]]; then
