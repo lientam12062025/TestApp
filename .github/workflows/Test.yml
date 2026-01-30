@@ -37,7 +37,7 @@ jobs:
           # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
           # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
           rclone lsjson "gdrive2:/TN/ROM" -R --files-only --no-mimetype --no-modtime > website-repo/src/data/roms1.json
-          rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime > website-repo/src/data/roms1.json
+          #rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime > website-repo/src/data/roms1.json
 
           # 2. Commit và đẩy code lên Github
           cd website-repo
