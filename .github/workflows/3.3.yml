@@ -34,7 +34,7 @@ jobs:
             echo "branch=3.2G" >> $GITHUB_OUTPUT
             echo "Target: Global (3.2G)"
           else
-            echo "branch=3.2" >> $GITHUB_OUTPUT
+            echo "branch=3.3" >> $GITHUB_OUTPUT
             echo "Target: China/Them (3.3)"
           fi
 
