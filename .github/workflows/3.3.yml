@@ -1,0 +1,101 @@
+name: Auto Build 3.3
+
+on:
+  workflow_dispatch:
+    inputs:
+      ROM_URL:
+        description: 'OTA URL for ROM'
+        required: true
+        type: string
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          swap-size-mb: 8192
+          root-reserve-mb: 2048    # Giảm cái này xuống 2048 (2GB) là đủ cho OS chạy
+          temp-reserve-mb: 1024    # QUAN TRỌNG: Giảm cái này xuống 1024 hoặc thấp hơn
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          overprovision-lvm: 'true'
+
+      - name: Checkout Runner Repo
+        uses: actions/checkout@v4
+
+      # Bước 2: Xử lý logic chọn nhánh (Viết gọn hơn)
+      - name: Determine branch
+        id: pick_branch
+        run: |
+          if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
+            echo "branch=3.2G" >> $GITHUB_OUTPUT
+            echo "Target: Global (3.2G)"
+          else
+            echo "branch=3.2" >> $GITHUB_OUTPUT
+            echo "Target: China/Them (3.3)"
+          fi
+
+      # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
+      - name: Checkout HyperTN_Code
+        uses: actions/checkout@v4
+        with:
+          repository: thangnguyen2303/HyperTN_Code
+          ref: ${{ steps.pick_branch.outputs.branch }}
+          token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
+          path: HyperTN_Code
+            
+      - name: Set up environment
+        run: |
+          sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xmlstarlet bc aria2 python3 p7zip-full zipalign \
+            android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
+            openjdk-17-jdk gcc g++ python-is-python3
+          sudo pip3 install pycryptodome
+          curl -s https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
+
+      - name: Run Auto Build TN
+        run: |
+          cd HyperTN_Code
+          sudo chmod -R +x .
+          echo "${{ inputs.ROM_URL }}"
+          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
+          
+      - name: 🔄 Checkout Website Repo
+        uses: actions/checkout@v4
+        with:
+          # ⚠️ SỬA TÊN KHO WEBSITE CỦA BẠN Ở ĐÂY
+          repository: thangnguyen2303/hypertn-site
+          # ⚠️ Token quyền ghi (Tạo trong Developer Settings > Personal access tokens)
+          token: ${{ secrets.TNWEB }} 
+          path: website-repo
+
+      - name: 📝 Update roms.json & Push
+        run: |
+          echo "Dang quet file tu Drive..."
+          rclone listremotes
+          # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
+          # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
+          rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms1.json
+          #rclone lsjson "gdrive03:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms2.json
+
+          # 2. Commit và đẩy code lên Github
+          cd website-repo
+          git config --global user.name "Thang Nguyen"
+          git config --global user.email "nvthang2303@outlook.com.vn"
+
+          # Kiểm tra xem có gì thay đổi không
+          if [[ -n $(git status -s) ]]; then
+            git add src/data/*.json
+            git commit -m "🤖 Auto-update ROM List: $(date '+%Y-%m-%d %H:%M')"
+            git push
+            echo "✅ Da cap nhat Website thanh cong!"
+          else
+            echo "💤 Khong co file ROM moi, bo qua update web."
+          fi
