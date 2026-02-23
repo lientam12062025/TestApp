@@ -60,6 +60,11 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
 
+      - name: Setup Cloudflare WARP
+        uses: fscarmen/warp-on-actions@v1.1
+        with:
+          stack: ipv4
+
       - name: Run Auto Build TN
         run: |
           cd HyperTN_Code
