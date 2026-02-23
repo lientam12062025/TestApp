@@ -60,10 +60,33 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Setup Cloudflare WARP
-        uses: Erisa/warp-action@v2
+# ==========================================================
+      # BƯỚC MỚI: Cài đặt Cloudflare WARP chính chủ (Chế độ Proxy)
+      # ==========================================================
+      - name: Setup Cloudflare WARP Proxy
+        run: |
+          echo "Nhúng key bảo mật của Cloudflare..."
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update
+          sudo apt-get install -y cloudflare-warp
+          
+          echo "Cấu hình WARP chạy SOCKS5 Proxy..."
+          warp-cli --accept-tos registration new
+          warp-cli --accept-tos mode proxy
+          warp-cli --accept-tos proxy port 40000
+          warp-cli --accept-tos connect
+          
+          echo "Đợi 5 giây để kết nối..."
+          sleep 5
+          
+          echo "Kiểm tra IP đã được Fake thành công chưa:"
+          curl -s -x socks5h://127.0.0.1:40000 https://cloudflare.com/cdn-cgi/trace | grep warp
 
       - name: Run Auto Build TN
+        env: # <--- THÊM 3 DÒNG NÀY ĐỂ ÉP RCLONE DÙNG FAKE IP
+          HTTPS_PROXY: socks5://127.0.0.1:40000
+          HTTP_PROXY: socks5://127.0.0.1:40000
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
