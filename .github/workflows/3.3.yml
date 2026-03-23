@@ -31,7 +31,7 @@ jobs:
         id: pick_branch
         run: |
           if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
-            echo "branch=3.2G" >> $GITHUB_OUTPUT
+            echo "branch=3.3G" >> $GITHUB_OUTPUT
             echo "Target: Global (3.2G)"
           else
             echo "branch=3.3" >> $GITHUB_OUTPUT
