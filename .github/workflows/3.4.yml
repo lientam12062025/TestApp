@@ -1,4 +1,4 @@
-name: Auto Build 3.3
+name: Auto Build 3.4
 
 on:
   workflow_dispatch:
