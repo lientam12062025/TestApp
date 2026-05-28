@@ -52,7 +52,7 @@ jobs:
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xmlstarlet bc aria2 python3 p7zip-full zipalign \
+            xmlstarlet bc aria2 python3 p7zip-full zipalign apksigner \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
           sudo pip3 install pycryptodome
