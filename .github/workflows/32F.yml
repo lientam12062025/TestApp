@@ -1,4 +1,4 @@
-name: Auto Build 3.2F
+name: Auto Build 3.4T
 
 on:
   workflow_dispatch:
@@ -31,11 +31,11 @@ jobs:
         id: pick_branch
         run: |
           if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
-            echo "branch=3.2G" >> $GITHUB_OUTPUT
-            echo "Target: Global (3.2G)"
+            echo "branch=3.4GT" >> $GITHUB_OUTPUT
+            echo "Target: Global (3.4G)"
           else
-            echo "branch=3.2F" >> $GITHUB_OUTPUT
-            echo "Target: China/Them (3.2F)"
+            echo "branch=3.4T" >> $GITHUB_OUTPUT
+            echo "Target: China/Them (3.4)"
           fi
 
       # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
@@ -52,7 +52,7 @@ jobs:
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xmlstarlet bc aria2 python3 p7zip-full zipalign \
+            xmlstarlet bc aria2 python3 p7zip-full zipalign apksigner \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
           sudo pip3 install pycryptodome
@@ -60,7 +60,33 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
 
+# ==========================================================
+      # BƯỚC MỚI: Cài đặt Cloudflare WARP chính chủ (Chế độ Proxy)
+      # ==========================================================
+      - name: Setup Cloudflare WARP Proxy
+        run: |
+          echo "Nhúng key bảo mật của Cloudflare..."
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update
+          sudo apt-get install -y cloudflare-warp
+          
+          echo "Cấu hình WARP chạy SOCKS5 Proxy..."
+          warp-cli --accept-tos registration new
+          warp-cli --accept-tos mode proxy
+          warp-cli --accept-tos proxy port 40000
+          warp-cli --accept-tos connect
+          
+          echo "Đợi 5 giây để kết nối..."
+          sleep 5
+          
+          echo "Kiểm tra IP đã được Fake thành công chưa:"
+          curl -s -x socks5h://127.0.0.1:40000 https://cloudflare.com/cdn-cgi/trace | grep warp
+
       - name: Run Auto Build TN
+        env: # <--- THÊM 3 DÒNG NÀY ĐỂ ÉP RCLONE DÙNG FAKE IP
+          HTTPS_PROXY: socks5://127.0.0.1:40000
+          HTTP_PROXY: socks5://127.0.0.1:40000
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
@@ -82,8 +108,8 @@ jobs:
           rclone listremotes
           # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
           # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
-          rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms1.json
-          #rclone lsjson "gdrive03:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms2.json
+          rclone lsjson "gdrive39:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms1.json
+          rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms2.json
 
           # 2. Commit và đẩy code lên Github
           cd website-repo
