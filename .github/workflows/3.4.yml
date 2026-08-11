@@ -46,6 +46,8 @@ jobs:
           ref: ${{ steps.pick_branch.outputs.branch }}
           token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
           path: HyperTN_Code
+          fetch-depth: 1 
+          filter: 'tree:0'
             
       - name: Set up environment
         run: |
