@@ -39,14 +39,14 @@ jobs:
           fi
 
       # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
-      - name: Download HyperTN_Code (Fast API Method)
-        run: |
-          mkdir HyperTN_Code
-          echo "Đang tải nhánh ${{ steps.pick_branch.outputs.branch }} siêu tốc qua API..."
-          curl -s -H "Authorization: token ${{ secrets.TNKEY }}" \
-               -L "https://api.github.com/repos/thangnguyen2303/HyperTN_Code/tarball/${{ steps.pick_branch.outputs.branch }}" \
-               | tar -xz -C HyperTN_Code --strip-components=1
-          echo "Tải và giải nén thành công!"
+      - name: Checkout HyperTN_Code
+        uses: actions/checkout@v4
+        with:
+          repository: thangnguyen2303/HyperTN_Code
+          ref: ${{ steps.pick_branch.outputs.branch }}
+          token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
+          path: HyperTN_Code
+          fetch-depth: 1
             
       - name: Set up environment
         run: |
