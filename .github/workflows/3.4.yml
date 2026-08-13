@@ -39,14 +39,15 @@ jobs:
           fi
 
       # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
-      - name: Checkout HyperTN_Code
-        uses: actions/checkout@v4
-        with:
-          repository: thangnguyen2303/HyperTN_Code
-          ref: ${{ steps.pick_branch.outputs.branch }}
-          token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
-          path: HyperTN_Code
-          fetch-depth: 1
+      - name: Clone HyperTN_Code
+        run: |
+          echo "Đang tải nhánh ${{ steps.pick_branch.outputs.branch }} ..."
+          
+          # Dùng git clone với độ sâu = 1 (Chỉ tải đúng commit mới nhất, bỏ qua toàn bộ lịch sử)
+          git clone --depth 1 --single-branch --branch "${{ steps.pick_branch.outputs.branch }}" \
+            "https://oauth2:${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git" HyperTN_Code
+            
+          echo "Tải mã nguồn thành công!"
             
       - name: Set up environment
         run: |
