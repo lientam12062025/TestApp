@@ -52,6 +52,9 @@ jobs:
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+          sudo rm -f \
+          /etc/apt/sources.list.d/google-chrome.list \
+          /etc/apt/sources.list.d/google-chrome.list.save
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             xmlstarlet bc aria2 python3 p7zip-full zipalign apksigner \
