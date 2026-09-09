@@ -52,13 +52,33 @@ jobs:
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
-
-          sudo rm -f \
-            /etc/apt/sources.list.d/google-chrome.list \
-            /etc/apt/sources.list.d/google-chrome.list.save
+          
+          echo "Chrome repositories before removal:"
+          grep -RIn \
+            "dl.google.com/linux/chrome-stable/deb" \
+            /etc/apt/sources.list \
+            /etc/apt/sources.list.d 2>/dev/null || true
+          
+          # Xóa mọi source file chứa Chrome repository
+          grep -RIl \
+            "dl.google.com/linux/chrome-stable/deb" \
+            /etc/apt/sources.list.d 2>/dev/null |
+            sudo xargs -r rm -f
+          
+          # Phòng trường hợp URL được ghi trực tiếp trong sources.list
+          sudo sed -i \
+            '\|dl.google.com/linux/chrome-stable/deb|d' \
+            /etc/apt/sources.list
+          
+          echo "Chrome repositories after removal:"
+          grep -RIn \
+            "dl.google.com/linux/chrome-stable/deb" \
+            /etc/apt/sources.list \
+            /etc/apt/sources.list.d 2>/dev/null || true
           
           sudo apt-get clean
-          sudo apt-get -o Acquire::Retries=5 update
+          sudo rm -rf /var/lib/apt/lists/partial
+          sudo apt-get update
           
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             xmlstarlet bc aria2 python3 p7zip-full zipalign apksigner \
