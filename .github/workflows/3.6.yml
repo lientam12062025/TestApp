@@ -124,6 +124,8 @@ jobs:
           GDRIVE_SA_3_B64: ${{ secrets.GDRIVE_SA_3_B64 }}
           GDRIVE_SA_4_B64: ${{ secrets.GDRIVE_SA_4_B64 }}
           GDRIVE_SHARED_DRIVE_ID: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
