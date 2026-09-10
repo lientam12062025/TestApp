@@ -130,7 +130,7 @@ jobs:
           cd HyperTN_Code
           sudo chmod -R +x .
           echo "${{ inputs.ROM_URL }}"
-          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
+          bash BuildTN.sh "${{ inputs.ROM_URL }}"
           
       - name: 🔄 Checkout Website Repo
         uses: actions/checkout@v4
