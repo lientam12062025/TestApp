@@ -4,18 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       ROM_URL:
-        description: 'OTA URL for ROM (legacy/single build)'
+        description: 'OTA URL for ROM'
         required: true
-        type: string
-      ROM_URLS_JSON:
-        description: 'JSON array of OTA URLs for one batch workflow run'
-        required: false
-        default: ''
-        type: string
-      BUILD_REGION:
-        description: 'Batch target: CN or GL'
-        required: false
-        default: ''
         type: string
 
 jobs:
@@ -38,22 +28,13 @@ jobs:
 
       - name: Determine branch
         id: pick_branch
-        env:
-          BUILD_REGION: ${{ inputs.BUILD_REGION }}
-          LEGACY_ROM_URL: ${{ inputs.ROM_URL }}
         run: |
-          if [[ "${BUILD_REGION^^}" == "GL" ]]; then
-            echo "branch=3.4G" >> "$GITHUB_OUTPUT"
+          if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
+            echo "branch=3.4G" >> $GITHUB_OUTPUT
             echo "Target: Global (3.4G)"
-          elif [[ "${BUILD_REGION^^}" == "CN" ]]; then
-            echo "branch=3.4" >> "$GITHUB_OUTPUT"
-            echo "Target: China (3.4)"
-          elif [[ "$LEGACY_ROM_URL" == *[Gg]lobal* ]]; then
-            echo "branch=3.4G" >> "$GITHUB_OUTPUT"
-            echo "Target: Global legacy build (3.4G)"
           else
-            echo "branch=3.4" >> "$GITHUB_OUTPUT"
-            echo "Target: China/other legacy build (3.4)"
+            echo "branch=3.4" >> $GITHUB_OUTPUT
+            echo "Target: China/Them (3.4)"
           fi
 
       - name: Clone HyperTN_Code
@@ -100,46 +81,11 @@ jobs:
         env:
           HTTPS_PROXY: socks5://127.0.0.1:40000
           HTTP_PROXY: socks5://127.0.0.1:40000
-          ROM_URLS_JSON: ${{ inputs.ROM_URLS_JSON }}
-          LEGACY_ROM_URL: ${{ inputs.ROM_URL }}
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
-
-          export ROM_LIST_FILE="$RUNNER_TEMP/rom_urls.txt"
-          python3 - <<'PY'
-          import json
-          import os
-          from urllib.parse import urlparse
-
-          raw = os.environ.get("ROM_URLS_JSON", "").strip()
-          urls = json.loads(raw) if raw else [os.environ.get("LEGACY_ROM_URL", "").strip()]
-          if not isinstance(urls, list) or not urls:
-              raise SystemExit("ROM URL list is empty or invalid")
-
-          clean_urls = []
-          for url in urls:
-              if not isinstance(url, str):
-                  raise SystemExit("Every ROM URL must be a string")
-              url = url.strip()
-              parsed = urlparse(url)
-              if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-                  raise SystemExit(f"Invalid ROM URL: {url!r}")
-              clean_urls.append(url)
-
-          with open(os.environ["ROM_LIST_FILE"], "w", encoding="utf-8") as handle:
-              handle.write("\n".join(clean_urls) + "\n")
-          print(f"Validated {len(clean_urls)} ROM URL(s)")
-          PY
-
-          total=$(wc -l < "$ROM_LIST_FILE")
-          current=0
-          while IFS= read -r rom_url || [[ -n "$rom_url" ]]; do
-            [[ -z "$rom_url" ]] && continue
-            current=$((current + 1))
-            echo "[$current/$total] Building: $rom_url"
-            sudo --preserve-env=HTTPS_PROXY,HTTP_PROXY bash BuildTN.sh "$rom_url"
-          done < "$ROM_LIST_FILE"
+          echo "${{ inputs.ROM_URL }}"
+          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
 
       - name: 🔄 Checkout Website Repo
         uses: actions/checkout@v4
