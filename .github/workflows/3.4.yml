@@ -4,8 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       ROM_URL:
-        description: 'OTA URL for ROM'
+        description: 'OTA URL for ROM (legacy/single build)'
         required: true
+        type: string
+      ROM_URLS_JSON:
+        description: 'JSON array of OTA URLs for one batch workflow run'
+        required: false
+        default: ''
+        type: string
+      BUILD_REGION:
+        description: 'Batch target: CN or GL'
+        required: false
+        default: ''
         type: string
 
 jobs:
@@ -16,8 +26,8 @@ jobs:
         uses: easimon/maximize-build-space@master
         with:
           swap-size-mb: 8192
-          root-reserve-mb: 2048    # Giảm cái này xuống 2048 (2GB) là đủ cho OS chạy
-          temp-reserve-mb: 1024    # QUAN TRỌNG: Giảm cái này xuống 1024 hoặc thấp hơn
+          root-reserve-mb: 2048
+          temp-reserve-mb: 1024
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
@@ -26,29 +36,33 @@ jobs:
       - name: Checkout Runner Repo
         uses: actions/checkout@v4
 
-      # Bước 2: Xử lý logic chọn nhánh (Viết gọn hơn)
       - name: Determine branch
         id: pick_branch
+        env:
+          BUILD_REGION: ${{ inputs.BUILD_REGION }}
+          LEGACY_ROM_URL: ${{ inputs.ROM_URL }}
         run: |
-          if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
-            echo "branch=3.4G" >> $GITHUB_OUTPUT
+          if [[ "${BUILD_REGION^^}" == "GL" ]]; then
+            echo "branch=3.4G" >> "$GITHUB_OUTPUT"
             echo "Target: Global (3.4G)"
+          elif [[ "${BUILD_REGION^^}" == "CN" ]]; then
+            echo "branch=3.4" >> "$GITHUB_OUTPUT"
+            echo "Target: China (3.4)"
+          elif [[ "$LEGACY_ROM_URL" == *[Gg]lobal* ]]; then
+            echo "branch=3.4G" >> "$GITHUB_OUTPUT"
+            echo "Target: Global legacy build (3.4G)"
           else
-            echo "branch=3.4" >> $GITHUB_OUTPUT
-            echo "Target: China/Them (3.4)"
+            echo "branch=3.4" >> "$GITHUB_OUTPUT"
+            echo "Target: China/other legacy build (3.4)"
           fi
 
-      # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
       - name: Clone HyperTN_Code
         run: |
           echo "Đang tải nhánh ${{ steps.pick_branch.outputs.branch }} ..."
-          
-          # Dùng git clone với độ sâu = 1 (Chỉ tải đúng commit mới nhất, bỏ qua toàn bộ lịch sử)
           git clone --depth 1 --single-branch --branch "${{ steps.pick_branch.outputs.branch }}" \
             "https://oauth2:${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git" HyperTN_Code
-            
           echo "Tải mã nguồn thành công!"
-            
+
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
@@ -62,9 +76,6 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-# ==========================================================
-      # BƯỚC MỚI: Cài đặt Cloudflare WARP chính chủ (Chế độ Proxy)
-      # ==========================================================
       - name: Setup Cloudflare WARP Proxy
         run: |
           echo "Nhúng key bảo mật của Cloudflare..."
@@ -72,53 +83,82 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
           sudo apt-get update
           sudo apt-get install -y cloudflare-warp
-          
+
           echo "Cấu hình WARP chạy SOCKS5 Proxy..."
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos proxy port 40000
           warp-cli --accept-tos connect
-          
+
           echo "Đợi 5 giây để kết nối..."
           sleep 5
-          
+
           echo "Kiểm tra IP đã được Fake thành công chưa:"
           curl -s -x socks5h://127.0.0.1:40000 https://cloudflare.com/cdn-cgi/trace | grep warp
 
       - name: Run Auto Build TN
-        env: # <--- THÊM 3 DÒNG NÀY ĐỂ ÉP RCLONE DÙNG FAKE IP
+        env:
           HTTPS_PROXY: socks5://127.0.0.1:40000
           HTTP_PROXY: socks5://127.0.0.1:40000
+          ROM_URLS_JSON: ${{ inputs.ROM_URLS_JSON }}
+          LEGACY_ROM_URL: ${{ inputs.ROM_URL }}
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
-          echo "${{ inputs.ROM_URL }}"
-          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
-          
+
+          export ROM_LIST_FILE="$RUNNER_TEMP/rom_urls.txt"
+          python3 - <<'PY'
+          import json
+          import os
+          from urllib.parse import urlparse
+
+          raw = os.environ.get("ROM_URLS_JSON", "").strip()
+          urls = json.loads(raw) if raw else [os.environ.get("LEGACY_ROM_URL", "").strip()]
+          if not isinstance(urls, list) or not urls:
+              raise SystemExit("ROM URL list is empty or invalid")
+
+          clean_urls = []
+          for url in urls:
+              if not isinstance(url, str):
+                  raise SystemExit("Every ROM URL must be a string")
+              url = url.strip()
+              parsed = urlparse(url)
+              if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                  raise SystemExit(f"Invalid ROM URL: {url!r}")
+              clean_urls.append(url)
+
+          with open(os.environ["ROM_LIST_FILE"], "w", encoding="utf-8") as handle:
+              handle.write("\n".join(clean_urls) + "\n")
+          print(f"Validated {len(clean_urls)} ROM URL(s)")
+          PY
+
+          total=$(wc -l < "$ROM_LIST_FILE")
+          current=0
+          while IFS= read -r rom_url || [[ -n "$rom_url" ]]; do
+            [[ -z "$rom_url" ]] && continue
+            current=$((current + 1))
+            echo "[$current/$total] Building: $rom_url"
+            sudo --preserve-env=HTTPS_PROXY,HTTP_PROXY bash BuildTN.sh "$rom_url"
+          done < "$ROM_LIST_FILE"
+
       - name: 🔄 Checkout Website Repo
         uses: actions/checkout@v4
         with:
-          # ⚠️ SỬA TÊN KHO WEBSITE CỦA BẠN Ở ĐÂY
           repository: thangnguyen2303/hypertn-site
-          # ⚠️ Token quyền ghi (Tạo trong Developer Settings > Personal access tokens)
-          token: ${{ secrets.TNWEB }} 
+          token: ${{ secrets.TNWEB }}
           path: website-repo
 
       - name: 📝 Update roms.json & Push
         run: |
           echo "Dang quet file tu Drive..."
           rclone listremotes
-          # 1. Quét danh sách file từ Drive và ghi đè vào file roms.json của web
-          # (Rclone đã được cài và config ở bước 'Set up environment' nên dùng được luôn)
           rclone lsjson "gdrive39:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms1.json
           rclone lsjson "gdrive3:/TN/ROM" -R --files-only --no-mimetype --no-modtime --include "*.7z" > website-repo/src/data/roms2.json
 
-          # 2. Commit và đẩy code lên Github
           cd website-repo
           git config --global user.name "Thang Nguyen"
           git config --global user.email "nvthang2303@outlook.com.vn"
 
-          # Kiểm tra xem có gì thay đổi không
           if [[ -n $(git status -s) ]]; then
             git add src/data/*.json
             git commit -m "🤖 Auto-update ROM List: $(date '+%Y-%m-%d %H:%M')"
