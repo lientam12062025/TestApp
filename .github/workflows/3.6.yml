@@ -1,4 +1,4 @@
-name: Auto Build 3.6
+name: Auto Build No Mod
 
 on:
   workflow_dispatch:
@@ -31,66 +31,34 @@ jobs:
         id: pick_branch
         run: |
           if [[ "${{ inputs.ROM_URL }}" == *[Gg]lobal* ]]; then
-            echo "branch=3.6G" >> $GITHUB_OUTPUT
-            echo "Target: Global (3.6G)"
+            echo "branch=3.5G" >> $GITHUB_OUTPUT
+            echo "Target: Global (3.5G)"
           else
-            echo "branch=3.6" >> $GITHUB_OUTPUT
-            echo "Target: China/Them (3.6)"
+            echo "branch=3.7" >> $GITHUB_OUTPUT
+            echo "Target: China/Them (3.5)"
           fi
 
       # Bước 3: Checkout code Private từ tài khoản chính (An toàn hơn git clone tay)
-      - name: Clone HyperTN_Code
-        run: |
-          echo "Đang tải nhánh ${{ steps.pick_branch.outputs.branch }} ..."
-          
-          # Dùng git clone với độ sâu = 1 (Chỉ tải đúng commit mới nhất, bỏ qua toàn bộ lịch sử)
-          git clone --depth 1 --single-branch --branch "${{ steps.pick_branch.outputs.branch }}" \
-            "https://oauth2:${{ secrets.TNKEY }}@github.com/thangnguyen2303/HyperTN_Code.git" HyperTN_Code
-            
-          echo "Tải mã nguồn thành công!"
+      - name: Checkout HyperTN_Code
+        uses: actions/checkout@v4
+        with:
+          repository: thangnguyen2303/HyperTN_Code
+          ref: ${{ steps.pick_branch.outputs.branch }}
+          token: ${{ secrets.TNKEY }} # Token này an toàn hơn khi dùng qua action
+          path: HyperTN_Code
             
       - name: Set up environment
         run: |
           sudo timedatectl set-timezone Asia/Ho_Chi_Minh
-          
-          echo "Chrome repositories before removal:"
-          grep -RIn \
-            "dl.google.com/linux/chrome-stable/deb" \
-            /etc/apt/sources.list \
-            /etc/apt/sources.list.d 2>/dev/null || true
-          
-          # Xóa mọi source file chứa Chrome repository
-          grep -RIl \
-            "dl.google.com/linux/chrome-stable/deb" \
-            /etc/apt/sources.list.d 2>/dev/null |
-            sudo xargs -r rm -f
-          
-          # Phòng trường hợp URL được ghi trực tiếp trong sources.list
-          sudo sed -i \
-            '\|dl.google.com/linux/chrome-stable/deb|d' \
-            /etc/apt/sources.list
-          
-          echo "Chrome repositories after removal:"
-          grep -RIn \
-            "dl.google.com/linux/chrome-stable/deb" \
-            /etc/apt/sources.list \
-            /etc/apt/sources.list.d 2>/dev/null || true
-          
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/partial
           sudo apt-get update
-          
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+          sudo apt-get install -y --no-install-recommends \
             xmlstarlet bc aria2 python3 p7zip-full zipalign apksigner \
             android-sdk-libsparse-utils lz4 xz-utils zlib1g-dev \
             openjdk-17-jdk gcc g++ python-is-python3
-          
           sudo pip3 install pycryptodome
-          
-          curl -fsSL https://rclone.org/install.sh | sudo bash
+          curl -s https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE }}" | base64 -d > ~/.config/rclone/rclone.conf
-          
 
 # ==========================================================
       # BƯỚC MỚI: Cài đặt Cloudflare WARP chính chủ (Chế độ Proxy)
@@ -119,18 +87,11 @@ jobs:
         env: # <--- THÊM 3 DÒNG NÀY ĐỂ ÉP RCLONE DÙNG FAKE IP
           HTTPS_PROXY: socks5://127.0.0.1:40000
           HTTP_PROXY: socks5://127.0.0.1:40000
-          GDRIVE_SA_1_B64: ${{ secrets.GDRIVE_SA_1_B64 }}
-          GDRIVE_SA_2_B64: ${{ secrets.GDRIVE_SA_2_B64 }}
-          GDRIVE_SA_3_B64: ${{ secrets.GDRIVE_SA_3_B64 }}
-          GDRIVE_SA_4_B64: ${{ secrets.GDRIVE_SA_4_B64 }}
-          GDRIVE_SHARED_DRIVE_ID: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
-          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
-          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
         run: |
           cd HyperTN_Code
           sudo chmod -R +x .
           echo "${{ inputs.ROM_URL }}"
-          bash BuildTN.sh "${{ inputs.ROM_URL }}"
+          sudo bash BuildTN.sh "${{ inputs.ROM_URL }}"
           
       - name: 🔄 Checkout Website Repo
         uses: actions/checkout@v4
